@@ -20,6 +20,9 @@ import { Markdown } from "./markdown";
 import { ReasoningPart } from "./reasoning-part";
 import { CopyButton } from "./message-actions";
 import { LimitsBadge } from "./limits-badge";
+import { RetryableError } from "./retryable-error";
+import { chatToMarkdown, downloadMarkdown } from "@/lib/export";
+import type { ChatMessageMetadata } from "@/lib/chat-meta";
 import { ToolPart } from "./tool-part";
 
 const EXAMPLE_PROMPTS = [
@@ -271,6 +274,21 @@ function ChatView({
         </button>
         <h1 className="truncate text-sm font-semibold">AI-чат · MCP</h1>
         <div className="ml-auto flex items-center gap-2">
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={() =>
+                downloadMarkdown(
+                  "chat-export.md",
+                  chatToMarkdown(titleFromMessages(messages), messages),
+                )
+              }
+              className="rounded-lg p-2 text-sm text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              title="Експортувати чат у Markdown"
+            >
+              ⬇ MD
+            </button>
+          )}
           <LimitsBadge
             providerId={providerId}
             refreshKey={status === "ready" ? messages.length : -1}
@@ -354,7 +372,8 @@ function ChatView({
                     <span className="ml-0.5 inline-block h-4 w-2 animate-pulse bg-zinc-400 align-text-bottom" />
                   )}
                   {status === "ready" && (
-                    <div className="mt-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-md:opacity-100">
+                    <div className="mt-1 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-md:opacity-100">
+                      <UsageLine metadata={message.metadata as ChatMessageMetadata | undefined} />
                       <CopyButton
                         text={message.parts
                           .map((part) => (part.type === "text" ? part.text : ""))
@@ -385,9 +404,13 @@ function ChatView({
           )}
 
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-              <span className="font-medium">Помилка:</span> {error.message}
-            </div>
+            <RetryableError
+              message={error.message}
+              onRetry={() => {
+                clearError();
+                void regenerate();
+              }}
+            />
           )}
 
           <div ref={bottomRef} />
@@ -457,5 +480,15 @@ function ChatView({
         </div>
       </form>
     </main>
+  );
+}
+
+function UsageLine({ metadata }: { metadata: ChatMessageMetadata | undefined }) {
+  const usage = metadata?.usage;
+  if (!usage || (usage.inputTokens == null && usage.outputTokens == null)) return null;
+  return (
+    <span className="px-1 text-xs tabular-nums text-zinc-400" title="Токени цієї відповіді: вхід / вихід">
+      ↑{usage.inputTokens ?? "—"} ↓{usage.outputTokens ?? "—"}
+    </span>
   );
 }

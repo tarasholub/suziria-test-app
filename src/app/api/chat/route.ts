@@ -64,6 +64,15 @@ export async function POST(req: Request) {
   });
 
   return result.toUIMessageStreamResponse({
+    messageMetadata: ({ part }) =>
+      part.type === "finish"
+        ? {
+            usage: {
+              inputTokens: part.totalUsage.inputTokens,
+              outputTokens: part.totalUsage.outputTokens,
+            },
+          }
+        : undefined,
     onError: (error) =>
       error instanceof Error ? error.message : "Сталася помилка під час генерації відповіді.",
   });

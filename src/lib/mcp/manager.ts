@@ -37,6 +37,9 @@ interface ServerRuntime {
 
 const CONNECT_TIMEOUT_MS = 15_000;
 const RETRY_COOLDOWN_MS = 30_000;
+/** Per-text-part cap for tool output. Keeps huge results (web pages, issue search)
+ *  from blowing the context window and free-tier TPM limits. */
+const MAX_TOOL_TEXT_CHARS = 6_000;
 
 export { TOOL_SEPARATOR } from "./shared";
 
@@ -57,6 +60,43 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
       },
     );
   });
+}
+
+interface TextContentPart {
+  type?: string;
+  text?: string;
+}
+
+function truncateToolResult(result: unknown): unknown {
+  if (typeof result === "string") {
+    return result.length > MAX_TOOL_TEXT_CHARS
+      ? `${result.slice(0, MAX_TOOL_TEXT_CHARS)}\n…[truncated ${result.length - MAX_TOOL_TEXT_CHARS} chars]`
+      : result;
+  }
+  if (result && typeof result === "object" && Array.isArray((result as { content?: unknown }).content)) {
+    const r = result as { content: TextContentPart[]; structuredContent?: unknown };
+    return {
+      ...r,
+      // structuredContent duplicates content — drop it to halve the payload
+      structuredContent: undefined,
+      content: r.content.map((part) =>
+        part?.type === "text" && typeof part.text === "string" && part.text.length > MAX_TOOL_TEXT_CHARS
+          ? { ...part, text: `${part.text.slice(0, MAX_TOOL_TEXT_CHARS)}\n…[truncated ${part.text.length - MAX_TOOL_TEXT_CHARS} chars]` }
+          : part,
+      ),
+    };
+  }
+  return result;
+}
+
+function withTruncatedOutput<T extends { execute?: (...args: never[]) => unknown }>(tool: T): T {
+  const original = tool.execute;
+  if (typeof original !== "function") return tool;
+  return {
+    ...tool,
+    execute: async (...args: never[]) =>
+      truncateToolResult(await (original as (...a: never[]) => Promise<unknown>).apply(tool, args)),
+  };
 }
 
 function errorMessage(e: unknown): string {
@@ -127,9 +167,9 @@ export class McpManager {
         );
         const allowed = resolved.allowedTools;
         const tools: ToolSet = Object.fromEntries(
-          Object.entries(allTools).filter(
-            ([name]) => !allowed || allowed.includes(name),
-          ),
+          Object.entries(allTools)
+            .filter(([name]) => !allowed || allowed.includes(name))
+            .map(([name, tool]) => [name, withTruncatedOutput(tool)]),
         );
         rt.client = client;
         rt.tools = tools;

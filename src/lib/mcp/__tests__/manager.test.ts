@@ -111,3 +111,53 @@ describe("McpManager", () => {
     await expect(manager.setEnabled("nope", true)).rejects.toThrow(/Unknown MCP server/);
   });
 });
+
+describe("tool output truncation", () => {
+  it("truncates oversized text parts and drops structuredContent", async () => {
+    const bigText = "x".repeat(20_000);
+    createMCPClientMock.mockResolvedValueOnce({
+      tools: vi.fn(async () => ({
+        search: {
+          description: "search",
+          execute: async () => ({
+            content: [{ type: "text", text: bigText }],
+            structuredContent: { huge: bigText },
+            isError: false,
+          }),
+        },
+      })),
+      close: vi.fn(async () => {}),
+    });
+
+    const manager = new McpManager([server("github")]);
+    const tools = await manager.getTools();
+    const tool = tools["github__search"] as {
+      execute: (input: unknown, opts: unknown) => Promise<{
+        content: { text: string }[];
+        structuredContent?: unknown;
+      }>;
+    };
+    const result = await tool.execute({}, {});
+
+    expect(result.content[0].text.length).toBeLessThan(6_200);
+    expect(result.content[0].text).toContain("[truncated");
+    expect(result.structuredContent).toBeUndefined();
+  });
+
+  it("leaves small results untouched", async () => {
+    createMCPClientMock.mockResolvedValueOnce({
+      tools: vi.fn(async () => ({
+        ping: { description: "ping", execute: async () => ({ content: [{ type: "text", text: "pong" }] }) },
+      })),
+      close: vi.fn(async () => {}),
+    });
+
+    const manager = new McpManager([server("t")]);
+    const tools = await manager.getTools();
+    const tool = tools["t__ping"] as {
+      execute: (i: unknown, o: unknown) => Promise<{ content: { text: string }[] }>;
+    };
+    const result = await tool.execute({}, {});
+    expect(result.content[0].text).toBe("pong");
+  });
+});

@@ -52,7 +52,21 @@
         "headers": {
           "Authorization": "Bearer ${GITHUB_TOKEN}"
         }
-      }
+      },
+      "allowedTools": [
+        "search_repositories",
+        "search_issues",
+        "search_pull_requests",
+        "search_code",
+        "issue_read",
+        "pull_request_read",
+        "list_issues",
+        "list_pull_requests",
+        "get_file_contents",
+        "list_commits",
+        "get_commit",
+        "get_latest_release"
+      ]
     },
     {
       "id": "playwright",

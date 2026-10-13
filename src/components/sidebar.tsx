@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { ChatMeta } from "@/lib/chat-store";
 
 interface SidebarProps {
@@ -8,9 +9,28 @@ interface SidebarProps {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onRename: (id: string, title: string) => void;
 }
 
-export function Sidebar({ chats, activeId, onSelect, onNew, onDelete }: SidebarProps) {
+export function Sidebar({ chats, activeId, onSelect, onNew, onDelete, onRename }: SidebarProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingId) inputRef.current?.select();
+  }, [editingId]);
+
+  const startEditing = (chat: ChatMeta) => {
+    setEditingId(chat.id);
+    setDraft(chat.title);
+  };
+
+  const commit = () => {
+    if (editingId && draft.trim()) onRename(editingId, draft);
+    setEditingId(null);
+  };
+
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-zinc-200 p-3 dark:border-zinc-800">
@@ -37,22 +57,48 @@ export function Sidebar({ chats, activeId, onSelect, onNew, onDelete }: SidebarP
                 : "hover:bg-zinc-100 dark:hover:bg-zinc-900"
             }`}
           >
-            <button
-              type="button"
-              onClick={() => onSelect(c.id)}
-              className="min-w-0 flex-1 truncate text-left"
-              title={c.title}
-            >
-              {c.title}
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(c.id)}
-              className="invisible shrink-0 rounded px-1 text-zinc-400 hover:text-red-500 group-hover:visible"
-              title="Видалити чат"
-            >
-              ✕
-            </button>
+            {editingId === c.id ? (
+              <input
+                ref={inputRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={commit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commit();
+                  if (e.key === "Escape") setEditingId(null);
+                }}
+                className="min-w-0 flex-1 rounded border border-zinc-300 bg-white px-1 py-0.5 text-sm outline-none focus:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-900"
+                aria-label="Нова назва чату"
+              />
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onSelect(c.id)}
+                  onDoubleClick={() => startEditing(c)}
+                  className="min-w-0 flex-1 truncate text-left"
+                  title={`${c.title} (подвійний клік — перейменувати)`}
+                >
+                  {c.title}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startEditing(c)}
+                  className="invisible shrink-0 rounded px-1 text-zinc-400 hover:text-zinc-600 group-hover:visible dark:hover:text-zinc-300"
+                  title="Перейменувати чат"
+                >
+                  ✎
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(c.id)}
+                  className="invisible shrink-0 rounded px-1 text-zinc-400 hover:text-red-500 group-hover:visible"
+                  title="Видалити чат"
+                >
+                  ✕
+                </button>
+              </>
+            )}
           </div>
         ))}
       </nav>

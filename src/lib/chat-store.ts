@@ -44,6 +44,12 @@ export function saveChat(chat: StoredChat): void {
   localStorage.setItem(INDEX_KEY, JSON.stringify(index));
 }
 
+export function renameChat(id: string, title: string): void {
+  const chat = loadChat(id);
+  if (!chat) return;
+  saveChat({ ...chat, title: title.trim() || chat.title });
+}
+
 export function deleteChat(id: string): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(chatKey(id));

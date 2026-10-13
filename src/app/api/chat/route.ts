@@ -51,6 +51,10 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(body.messages),
     tools,
     stopWhen: stepCountIs(10),
+    providerOptions: {
+      // Reasoning summaries for gpt-5.x (Responses API); other providers ignore this key.
+      openai: { reasoningEffort: "low", reasoningSummary: "auto" },
+    },
     // 2 retries ride out per-minute rate limits (429); more would burn tiny daily quotas.
     maxRetries: 2,
   });

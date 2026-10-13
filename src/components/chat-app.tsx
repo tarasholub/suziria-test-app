@@ -5,6 +5,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import {
   deleteChat,
+  renameChat,
   listChats,
   loadChat,
   newChatId,
@@ -16,6 +17,7 @@ import type { ProviderInfo } from "@/lib/providers";
 import { McpPanel } from "./mcp-panel";
 import { Sidebar } from "./sidebar";
 import { Markdown } from "./markdown";
+import { ReasoningPart } from "./reasoning-part";
 import { CopyButton } from "./message-actions";
 import { ToolPart } from "./tool-part";
 
@@ -102,6 +104,11 @@ export function ChatApp() {
     setChats(listChats());
   }, []);
 
+  const handleRename = useCallback((id: string, title: string) => {
+    renameChat(id, title);
+    setChats(listChats());
+  }, []);
+
   return (
     <div className="flex h-dvh overflow-hidden bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       {/* Sidebar: history */}
@@ -116,6 +123,7 @@ export function ChatApp() {
           onSelect={selectChat}
           onNew={startNewChat}
           onDelete={removeChat}
+          onRename={handleRename}
         />
       </aside>
 
@@ -201,9 +209,10 @@ function ChatView({
   // Persist to localStorage whenever messages change
   useEffect(() => {
     if (messages.length === 0) return;
+    // A manually renamed chat keeps its title; otherwise derive from messages.
     saveChat({
       id: chatId,
-      title: titleFromMessages(messages),
+      title: loadChat(chatId)?.title ?? titleFromMessages(messages),
       updatedAt: Date.now(),
       messages,
     });
@@ -321,6 +330,9 @@ function ChatView({
                     }
                     if (part.type === "dynamic-tool") {
                       return <ToolPart key={i} part={part} />;
+                    }
+                    if (part.type === "reasoning") {
+                      return <ReasoningPart key={i} part={part} />;
                     }
                     return null;
                   })}

@@ -1,9 +1,8 @@
-import { NextResponse } from "next/server";
-
-// Availability depends on runtime env vars — never prerender this.
-export const dynamic = "force-dynamic";
+import { connection, NextResponse } from "next/server";
 import { listProviders } from "@/lib/providers";
 
-export function GET() {
+export async function GET() {
+  // Availability depends on runtime env vars — never prerender this.
+  await connection();
   return NextResponse.json({ providers: listProviders() });
 }

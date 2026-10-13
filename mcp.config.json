@@ -1,0 +1,85 @@
+{
+  "$schema": "./mcp.config.schema.json",
+  "servers": [
+    {
+      "id": "fetch",
+      "name": "Fetch",
+      "description": "Завантажує вміст веб-сторінки за URL (markdown).",
+      "enabled": true,
+      "transport": {
+        "type": "stdio",
+        "command": "uvx",
+        "args": ["mcp-server-fetch"]
+      }
+    },
+    {
+      "id": "context7",
+      "name": "Context7",
+      "description": "Актуальна документація бібліотек (Next.js, React тощо).",
+      "enabled": true,
+      "transport": {
+        "type": "http",
+        "url": "https://mcp.context7.com/mcp",
+        "headers": {
+          "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+        }
+      }
+    },
+    {
+      "id": "sequential-thinking",
+      "name": "Sequential Thinking",
+      "description": "Покрокове розбиття складної задачі.",
+      "enabled": true,
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+      }
+    },
+    {
+      "id": "github",
+      "name": "GitHub",
+      "description": "Пошук по репозиторіях, issues та PR (read-only PAT).",
+      "enabled": true,
+      "transport": {
+        "type": "http",
+        "url": "https://api.githubcopilot.com/mcp/",
+        "headers": {
+          "Authorization": "Bearer ${GITHUB_TOKEN}"
+        }
+      }
+    },
+    {
+      "id": "playwright",
+      "name": "Playwright",
+      "description": "Відкриває сторінки в браузері та збирає дані.",
+      "enabled": false,
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@playwright/mcp@latest", "--headless"]
+      }
+    },
+    {
+      "id": "filesystem",
+      "name": "Filesystem (read-only)",
+      "description": "Читання файлів у тестовій папці ./sandbox.",
+      "enabled": true,
+      "transport": {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "./sandbox"]
+      },
+      "allowedTools": [
+        "read_text_file",
+        "read_multiple_files",
+        "list_directory",
+        "list_directory_with_sizes",
+        "directory_tree",
+        "search_files",
+        "get_file_info",
+        "list_allowed_directories"
+      ]
+    }
+  ]
+}

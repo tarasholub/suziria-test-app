@@ -1,0 +1,8 @@
+{
+  "project": "ai-mcp-chat",
+  "stack": ["Next.js 16", "TypeScript", "Tailwind", "AI SDK 7"],
+  "members": [
+    { "name": "Taras", "role": "frontend" },
+    { "name": "Olena", "role": "design" }
+  ]
+}

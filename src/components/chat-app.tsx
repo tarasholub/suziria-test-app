@@ -46,6 +46,9 @@ export function ChatApp() {
 
   // Generated on the client only — crypto.randomUUID is not prerender-safe.
   useEffect(() => {
+    // Client-only init: crypto.randomUUID and localStorage are prerender-unsafe,
+    // so this must run in an effect; it fires once and cannot cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setChatId((id) => id || newChatId());
     setChats(listChats());
   }, []);

@@ -29,6 +29,8 @@ export function McpPanel() {
   }, []);
 
   useEffect(() => {
+    // Fetch-on-mount: state updates happen after await, not synchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     const interval = setInterval(() => void load(), 20_000);
     return () => clearInterval(interval);

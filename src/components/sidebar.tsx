@@ -15,6 +15,7 @@ interface SidebarProps {
 export function Sidebar({ chats, activeId, onSelect, onNew, onDelete, onRename }: SidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -84,19 +85,39 @@ export function Sidebar({ chats, activeId, onSelect, onNew, onDelete, onRename }
                 <button
                   type="button"
                   onClick={() => startEditing(c)}
-                  className="invisible shrink-0 rounded px-1 text-zinc-400 hover:text-zinc-600 group-hover:visible dark:hover:text-zinc-300"
+                  className={`shrink-0 rounded px-1 text-zinc-400 hover:text-zinc-600 group-hover:visible dark:hover:text-zinc-300 max-md:visible ${
+                    c.id === activeId ? "visible" : "invisible"
+                  }`}
                   title="Перейменувати чат"
                 >
                   ✎
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onDelete(c.id)}
-                  className="invisible shrink-0 rounded px-1 text-zinc-400 hover:text-red-500 group-hover:visible"
-                  title="Видалити чат"
-                >
-                  ✕
-                </button>
+                {confirmingId === c.id ? (
+                  <button
+                    type="button"
+                    autoFocus
+                    onClick={() => {
+                      setConfirmingId(null);
+                      onDelete(c.id);
+                    }}
+                    onBlur={() => setConfirmingId(null)}
+                    className="shrink-0 rounded bg-red-600 px-1.5 text-xs font-medium text-white"
+                    title="Підтвердити видалення"
+                  >
+                    Точно?
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingId(c.id)}
+                    className={`shrink-0 rounded px-1 text-zinc-400 hover:text-red-500 group-hover:visible max-md:visible ${
+                      c.id === activeId ? "visible" : "invisible"
+                    }`}
+                    title="Видалити чат"
+                  >
+                    ✕
+                  </button>
+                )}
               </>
             )}
           </div>

@@ -206,13 +206,22 @@ function ChatView({
     transport,
   });
 
-  // Persist to localStorage whenever messages change
+  // Persist to localStorage whenever messages actually change.
+  // Opening a chat (or StrictMode double-running the effect) must NOT bump
+  // updatedAt, or the sidebar reorders on every visit — so compare content
+  // with what's already stored before saving.
   useEffect(() => {
     if (messages.length === 0) return;
+    const stored = loadChat(chatId);
+    const unchanged =
+      stored !== null &&
+      stored.messages.length === messages.length &&
+      JSON.stringify(stored.messages.at(-1)) === JSON.stringify(messages.at(-1));
+    if (unchanged) return;
     // A manually renamed chat keeps its title; otherwise derive from messages.
     saveChat({
       id: chatId,
-      title: loadChat(chatId)?.title ?? titleFromMessages(messages),
+      title: stored?.title ?? titleFromMessages(messages),
       updatedAt: Date.now(),
       messages,
     });

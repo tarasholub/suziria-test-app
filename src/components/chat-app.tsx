@@ -30,7 +30,16 @@ export function ChatApp() {
   const [chatId, setChatId] = useState<string>("");
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
-  const [providerId, setProviderId] = useState("google");
+  const [providerId, setProviderIdState] = useState("google");
+
+  const setProviderId = useCallback((id: string) => {
+    setProviderIdState(id);
+    try {
+      localStorage.setItem("mcp-chat:provider", id);
+    } catch {
+      // storage unavailable (private mode) — selection just won't persist
+    }
+  }, []);
   const [leftOpen, setLeftOpen] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
 
@@ -45,12 +54,17 @@ export function ChatApp() {
       .then((r) => r.json())
       .then((data: { providers: ProviderInfo[] }) => {
         setProviders(data.providers);
+        const saved = localStorage.getItem("mcp-chat:provider");
+        const isAvailable = (id: string | null) =>
+          data.providers.some((p) => p.id === id && p.available);
+        if (saved && isAvailable(saved)) {
+          setProviderIdState(saved);
+          return;
+        }
         const firstAvailable = data.providers.find((p) => p.available);
         if (firstAvailable) {
-          setProviderId((current) =>
-            data.providers.some((p) => p.id === current && p.available)
-              ? current
-              : firstAvailable.id,
+          setProviderIdState((current) =>
+            isAvailable(current) ? current : firstAvailable.id,
           );
         }
       })

@@ -16,6 +16,7 @@ import type { ProviderInfo } from "@/lib/providers";
 import { McpPanel } from "./mcp-panel";
 import { Sidebar } from "./sidebar";
 import { Markdown } from "./markdown";
+import { CopyButton } from "./message-actions";
 import { ToolPart } from "./tool-part";
 
 const EXAMPLE_PROMPTS = [
@@ -181,13 +182,17 @@ function ChatView({
 }: ChatViewProps) {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const atBottomRef = useRef(true);
+  const [showScrollDown, setShowScrollDown] = useState(false);
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/chat" }),
     [],
   );
 
-  const { messages, sendMessage, status, error, stop, clearError } = useChat({
+  const { messages, sendMessage, status, error, stop, clearError, regenerate } = useChat({
     id: chatId,
     messages: initialMessages,
     transport,
@@ -205,9 +210,21 @@ function ChatView({
     onPersist();
   }, [messages, chatId, onPersist]);
 
+  // Autoscroll only while the user is already at the bottom — don't yank
+  // the viewport away from someone reading an earlier message.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (atBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
+
+  const onMessagesScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    atBottomRef.current = atBottom;
+    setShowScrollDown(!atBottom);
+  };
 
   const isBusy = status === "submitted" || status === "streaming";
 
@@ -217,6 +234,8 @@ function ChatView({
     clearError();
     void sendMessage({ text: trimmed }, { body: { providerId } });
     setInput("");
+    atBottomRef.current = true;
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
   };
 
   return (
@@ -259,7 +278,8 @@ function ChatView({
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="relative min-h-0 flex-1">
+      <div ref={scrollRef} onScroll={onMessagesScroll} className="h-full overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-3xl space-y-4">
           {messages.length === 0 && (
             <div className="mt-16 text-center">
@@ -283,8 +303,8 @@ function ChatView({
             </div>
           )}
 
-          {messages.map((message) => (
-            <div key={message.id}>
+          {messages.map((message, mi) => (
+            <div key={message.id} className="group">
               {message.role === "user" ? (
                 <div className="flex justify-end">
                   <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-zinc-900 px-4 py-2.5 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900">
@@ -304,6 +324,28 @@ function ChatView({
                     }
                     return null;
                   })}
+                  {mi === messages.length - 1 && status === "streaming" && (
+                    <span className="ml-0.5 inline-block h-4 w-2 animate-pulse bg-zinc-400 align-text-bottom" />
+                  )}
+                  {status === "ready" && (
+                    <div className="mt-1 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-md:opacity-100">
+                      <CopyButton
+                        text={message.parts
+                          .map((part) => (part.type === "text" ? part.text : ""))
+                          .join("\n")
+                          .trim()}
+                      />
+                      {mi === messages.length - 1 && (
+                        <button
+                          type="button"
+                          onClick={() => void regenerate()}
+                          className="rounded px-2 py-1 text-xs text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+                        >
+                          ⟳ Ще раз
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -326,6 +368,21 @@ function ChatView({
         </div>
       </div>
 
+      {showScrollDown && (
+        <button
+          type="button"
+          onClick={() => {
+            atBottomRef.current = true;
+            setShowScrollDown(false);
+            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+          }}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs shadow-md hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+        >
+          ↓ Донизу
+        </button>
+      )}
+      </div>
+
       {/* Input */}
       <form
         className="border-t border-zinc-200 p-3 dark:border-zinc-800"
@@ -336,8 +393,14 @@ function ChatView({
       >
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <textarea
+            ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              setInput(e.target.value);
+              const el = e.currentTarget;
+              el.style.height = "auto";
+              el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -346,7 +409,7 @@ function ChatView({
             }}
             rows={1}
             placeholder="Спитай щось… (Enter — надіслати)"
-            className="max-h-40 min-h-[44px] flex-1 resize-y rounded-xl border border-zinc-200 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-zinc-400 dark:border-zinc-700 dark:focus:border-zinc-500"
+            className="max-h-40 min-h-[44px] flex-1 resize-none rounded-xl border border-zinc-200 bg-transparent px-3 py-2.5 text-sm outline-none focus:border-zinc-400 dark:border-zinc-700 dark:focus:border-zinc-500"
           />
           {isBusy ? (
             <button

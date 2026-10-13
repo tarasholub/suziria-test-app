@@ -28,7 +28,7 @@ const PROVIDERS: Record<ProviderId, ProviderDefinition> = {
     id: "groq",
     label: "Groq",
     envKey: "GROQ_API_KEY",
-    defaultModel: "llama-3.3-70b-versatile",
+    defaultModel: "openai/gpt-oss-120b",
     modelEnvKey: "GROQ_MODEL",
     create: (m) => groq(m),
   },

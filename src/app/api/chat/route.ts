@@ -51,8 +51,8 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(body.messages),
     tools,
     stopWhen: stepCountIs(10),
-    // Free-tier quotas are tiny; aggressive retries burn them on 503 spikes.
-    maxRetries: 1,
+    // 2 retries ride out per-minute rate limits (429); more would burn tiny daily quotas.
+    maxRetries: 2,
   });
 
   return result.toUIMessageStreamResponse({

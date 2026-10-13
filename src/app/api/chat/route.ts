@@ -14,6 +14,7 @@ Guidelines:
 - For questions about GitHub repositories, issues or pull requests, use the GitHub tools.
 - For questions about local files, use the filesystem tools (restricted to the sandbox folder).
 - If a tool call fails, explain the failure briefly and continue with what you know. Never invent tool output.
+- Format math as plain text (use ^ and /), not LaTeX.
 - Answer in the language the user writes in.`;
 
 interface ChatRequestBody {
@@ -52,8 +53,11 @@ export async function POST(req: Request) {
     tools,
     stopWhen: stepCountIs(10),
     providerOptions: {
-      // Reasoning summaries for gpt-5.x (Responses API); other providers ignore this key.
+      // Reasoning summaries: each provider reads only its own key.
+      // OpenAI returns summaries only for identity-verified orgs — harmless otherwise.
       openai: { reasoningEffort: "low", reasoningSummary: "auto" },
+      // gpt-oss on Groq emits reasoning; "parsed" turns it into reasoning parts.
+      groq: { reasoningFormat: "parsed", reasoningEffort: "low" },
     },
     // 2 retries ride out per-minute rate limits (429); more would burn tiny daily quotas.
     maxRetries: 2,

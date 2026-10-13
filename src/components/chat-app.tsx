@@ -19,6 +19,7 @@ import { Sidebar } from "./sidebar";
 import { Markdown } from "./markdown";
 import { ReasoningPart } from "./reasoning-part";
 import { CopyButton } from "./message-actions";
+import { LimitsBadge } from "./limits-badge";
 import { ToolPart } from "./tool-part";
 
 const EXAMPLE_PROMPTS = [
@@ -270,6 +271,10 @@ function ChatView({
         </button>
         <h1 className="truncate text-sm font-semibold">AI-чат · MCP</h1>
         <div className="ml-auto flex items-center gap-2">
+          <LimitsBadge
+            providerId={providerId}
+            refreshKey={status === "ready" ? messages.length : -1}
+          />
           <select
             value={providerId}
             onChange={(e) => onProviderChange(e.target.value)}

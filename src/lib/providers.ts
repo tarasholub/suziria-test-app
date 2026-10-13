@@ -1,8 +1,16 @@
-import { google } from "@ai-sdk/google";
-import { anthropic } from "@ai-sdk/anthropic";
-import { openai } from "@ai-sdk/openai";
-import { groq } from "@ai-sdk/groq";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createGroq } from "@ai-sdk/groq";
 import type { LanguageModel } from "ai";
+import { limitsRecordingFetch } from "./limits";
+
+// Providers get a fetch wrapper that records x-ratelimit-* response headers,
+// so the UI can show live quota state (Google sends none — nothing recorded).
+const google = createGoogleGenerativeAI({ fetch: limitsRecordingFetch("google") });
+const anthropic = createAnthropic({ fetch: limitsRecordingFetch("anthropic") });
+const openai = createOpenAI({ fetch: limitsRecordingFetch("openai") });
+const groq = createGroq({ fetch: limitsRecordingFetch("groq") });
 
 export type ProviderId = "google" | "groq" | "anthropic" | "openai";
 

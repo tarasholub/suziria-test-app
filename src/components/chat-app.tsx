@@ -15,6 +15,7 @@ import {
 import type { ProviderInfo } from "@/lib/providers";
 import { McpPanel } from "./mcp-panel";
 import { Sidebar } from "./sidebar";
+import { Markdown } from "./markdown";
 import { ToolPart } from "./tool-part";
 
 const EXAMPLE_PROMPTS = [
@@ -293,11 +294,7 @@ function ChatView({
                 <div className="max-w-full text-sm leading-relaxed">
                   {message.parts.map((part, i) => {
                     if (part.type === "text") {
-                      return (
-                        <p key={i} className="whitespace-pre-wrap">
-                          {part.text}
-                        </p>
-                      );
+                      return <Markdown key={i} text={part.text} />;
                     }
                     if (part.type === "dynamic-tool") {
                       return <ToolPart key={i} part={part} />;

@@ -44,7 +44,7 @@ const PROVIDERS: Record<ProviderId, ProviderDefinition> = {
     id: "openai",
     label: "OpenAI",
     envKey: "OPENAI_API_KEY",
-    defaultModel: "gpt-5",
+    defaultModel: "gpt-5.2",
     modelEnvKey: "OPENAI_MODEL",
     create: (m) => openai(m),
   },
